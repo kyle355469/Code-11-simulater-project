@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <math.h> 
-
 /*
 ANS:
 case 1 : 123-45
@@ -26,12 +23,16 @@ Start/Stop 00110
 */
 
 // bad code : bar 長度不對 沒有start/stop 沒有匹配的code
+#include <stdio.h>
+#include <math.h> 
+
 int ltor(int, int, int[]);
 int rtol(int, int, int[]);
 
 int main(){
     int num;
     FILE *fptr;
+    int i;
     if((fptr = fopen("test.txt", "r")) == NULL){
         printf("File could not be opened.\n");
     }else{
@@ -41,13 +42,17 @@ int main(){
             int arr[num];
             fscanf(fptr, "%d", &arr[0]);
             //輸入
-            for(int i = 1; i < num; i++){
+            for(i = 1; i < num; i++){
                 fscanf(fptr, "%d", &arr[i]);
             }
 
             // bad code 0, bad C 1, bad K 2, good code 3;
             int ltor_result = ltor(num, counter, arr);
             int rtol_result = rtol(num, counter, arr);
+            // 比較 ltor 和 rtol 兩函式何者有較佳的結果
+			// 最佳 -------------------------> 最差
+			// 有解答 -> Bad K -> Bad C -> Bad Code 
+			// 因為有照最佳至最差的順序排序代號 (第49行) 故可以透過比大小比出應使用 ltor 或 rtol 
             if(ltor_result == 4 || rtol_result == 4){
                 counter += 1;
             }else{
@@ -82,52 +87,47 @@ int main(){
     }
 }
 int ltor(int num, int counter, int arr[]){
-    //printf("ltor\n");
-    int badC_check = 0;
+    // 判斷是否無法得出正確答案 
+	int badC_check = 0;
     int badK_check = 0;
     int badCode_check = 0;
     int tmp, narrow, wide;
     tmp = arr[0];
-    //判斷寬與窄
-    for(int i = 0; i < num; i++){
-        if(arr[i] > tmp * 1.1){
+    int i;
+    //判斷寬與窄 (由於可能第一筆資料就是誤差資料，故我將誤差從 5% 提升至 10% )
+    for(i = 0; i < num; i++){
+    	 // 若新資料大於第零筆資料 * 1.1 && 約等於第零筆資料 * 2 
+		 // -> 新資料為 wide bar, 第零筆資料為 narrow bar. 
+        if(arr[i] > tmp * 1.1 && arr[i] >= tmp * 1.9){
             narrow = tmp;
             wide = arr[i];
             break;
-        }else if(arr[i] < tmp * 0.9){
+        }
+         // 若新資料小於第零筆資料 * 0.9 && 約等於第零筆資料 * 0.5 
+		 // -> 新資料為 narrow bar, 第零筆資料為 wide bar. 
+		else if(arr[i] < tmp * 0.9 && arr[i] <= tmp * 0.6){
             narrow = arr[i];
             wide = tmp;
             break;
         }
     }
-    //寬與窄轉換
-    for(int i = 0; i < num; i++){
+    //將所有資料轉換為 wide 及 narrow  
+    for(i = 0; i < num; i++){
         if(arr[i] > narrow * 0.9 && arr[i] < narrow * 1.1){
             arr[i] = 0;
         }else if(arr[i] > wide * 0.9 && arr[i] < wide * 1.1){
             arr[i] = 1;
         }
     }
-    /*
-    int dd = 0;
-    for(int i = num - 1; i >= 0; i--){
-        printf("%d ", arr[i]);
-        dd++;
-        if(dd == 6){
-            printf("\n");
-            dd = 0;
-        }
-    }printf("\n");
-    */
-
-    int word_num = (num + 1) / 6;
-    int N = word_num - 4;
-    int trans_ans[word_num];
+    int word_num = (num + 1) / 6; // 每一組字為五個 0 或 1 加一個間隔用 0 (除了最後一組字) 
+    int N = word_num - 4; // N為實際需顯式的字數(扣掉start/stop, code c 和 k) 
+    int trans_ans[word_num];// 轉換後的數字存放的位置 
     int now = 0;
+    int j;
     //五個一組分區段，並將二進位轉換成十進位碼。
-    for(int i = 0; i < num; i++){
+    for(i = 0; i < num; i++){ // 這裡的 i++ 能跳過空格用的 0 (非常精妙 ! ) 
         int add = 0;
-        for(int j = 0; j < 5; j++, i++){
+        for(j = 0; j < 5; j++, i++){  
             add += arr[i] * pow(2, 4 - j);
         }
         switch(add){
@@ -172,35 +172,27 @@ int ltor(int num, int counter, int arr[]){
                 break;
         }
     }
-    /*
-    for(int i = 0; i < word_num; i++){
-        printf("%d ", trans_ans[i]);
-    }printf("\n");
-    */
     //start/stop check
     if(trans_ans[0] != -1 || trans_ans[word_num - 1] != -1){
         badCode_check = 1;
     }
     //Code C check
     int codeCchecker = 0;
-    for(int i = 1; i < word_num - 3; i++){
+    for(i = 1; i < word_num - 3; i++){
         codeCchecker += ((N - i) % 10 + 1) * trans_ans[i];
     }
-    //printf("%d\n", codeCchecker % 11);
     if(codeCchecker % 11 != trans_ans[word_num - 3]){
         badC_check = 1;
     }else{
         //code K check
         int codeKchecker = 0;
-        for(int i = 1; i < word_num - 2; i++){
+        for(i = 1; i < word_num - 2; i++){
             codeKchecker += ((N + 1 - i) % 9 + 1) * trans_ans[i];
         }
-        //printf("%d\n", codeKchecker % 11);
         if(codeKchecker % 11 != trans_ans[word_num - 2]){
             badK_check = 1;
         }
     }
-    //printf("%d %d %d\n", badCode_check, badC_check, badK_check);
     if(badCode_check){
         return 1;
     }else if(badC_check){
@@ -209,7 +201,7 @@ int ltor(int num, int counter, int arr[]){
         return 3;
     }else{
         printf("case %d : ", counter);
-        for(int i = 1; i < word_num - 3; i++){
+        for(i = 1; i < word_num - 3; i++){
             if(trans_ans[i] == 10){
                 printf("-");
             }else{
@@ -227,8 +219,9 @@ int rtol(int num, int counter, int arr[]){
     int badCode_check = 0;
     int tmp, narrow, wide;
     tmp = arr[0];
+    int i, j;
     //判斷寬與窄
-    for(int i = 0; i < num; i++){
+    for(i = 0; i < num; i++){
         if(arr[i] > tmp * 1.1){
             narrow = tmp;
             wide = arr[i];
@@ -240,32 +233,22 @@ int rtol(int num, int counter, int arr[]){
         }
     }
     //寬與窄轉換
-    for(int i = 0; i < num; i++){
+    for(i = 0; i < num; i++){
         if(arr[i] > narrow * 0.9 && arr[i] < narrow * 1.1){
             arr[i] = 0;
         }else if(arr[i] > wide * 0.9 && arr[i] < wide * 1.1){
             arr[i] = 1;
         }
     }
-    /*
-    int dd = 0;
-    for(int i = num - 1; i >= 0; i--){
-        printf("%d ", arr[i]);
-        dd++;
-        if(dd == 6){
-            printf("\n");
-            dd = 0;
-        }
-    }printf("\n");
-    */
+    
     int word_num = (num + 1) / 6;
     int N = word_num - 4;
     int trans_ans[word_num];
     int now = 0;
     //五個一組分區段，並將二進位轉換成十進位碼。
-    for(int i = num - 1; i >= 0; i--){
+    for(i = num - 1; i >= 0; i--){
         int add = 0;
-        for(int j = 0; j < 5; j++, i--){
+        for(j = 0; j < 5; j++, i--){
             add += arr[i] * pow(2, 4 - j);
         }
         switch(add){
@@ -310,35 +293,27 @@ int rtol(int num, int counter, int arr[]){
                 break;
         }
     }
-    /*
-    for(int i = 0; i < word_num; i++){
-        printf("%d ", trans_ans[i]);
-    }printf("\n");
-    */
     //start/stop check
     if(trans_ans[0] != -1 || trans_ans[word_num - 1] != -1){
         badCode_check = 1;
     }
     //Code C check
     int codeCchecker = 0;
-    for(int i = 1; i < word_num - 3; i++){
+    for(i = 1; i < word_num - 3; i++){
         codeCchecker += ((N - i) % 10 + 1) * trans_ans[i];
     }
-    //printf("%d\n", codeCchecker % 11);
     if(codeCchecker % 11 != trans_ans[word_num - 3]){
         badC_check = 1;
     }else{
         //code K check
         int codeKchecker = 0;
-        for(int i = 1; i < word_num - 2; i++){
+    	for(i = 1; i < word_num - 2; i++){
             codeKchecker += ((N + 1 - i) % 9 + 1) * trans_ans[i];
         }
-        //printf("%d\n", codeKchecker % 11);
         if(codeKchecker % 11 != trans_ans[word_num - 2]){
             badK_check = 1;
         }
     }
-    //printf("%d %d %d\n", badCode_check, badC_check, badK_check);
     if(badCode_check){
         return 1;
     }else if(badC_check){
@@ -347,7 +322,7 @@ int rtol(int num, int counter, int arr[]){
         return 3;
     }else{
         printf("case %d : ", counter);
-        for(int i = 1; i < word_num - 3; i++){
+        for(i = 1; i < word_num - 3; i++){
             if(trans_ans[i] == 10){
                 printf("-");
             }else{
