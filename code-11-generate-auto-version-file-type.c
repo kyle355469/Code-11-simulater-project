@@ -5,7 +5,7 @@ int main(){
     srand(time(NULL));
     int times;
     scanf("%d", &times);
-    FILE *test = fopen("/Users/kylekai/CppC/project/case.txt", "w");
+    FILE *test = fopen("case.txt", "w");
     while(times--){
         printf("times %d : \n", times);
         int num = rand() % 33, i;
